@@ -18,17 +18,21 @@ public class ScreenshotManager {
 
     public static void takeAndUploadScreenshot(String taskId) {
         MinecraftClient client = MinecraftClient.getInstance();
-        NativeImage nativeImage = ScreenshotRecorder.takeScreenshot(client.getFramebuffer());
-
-        try {
-            byte[] imageBytes = nativeImage.getBytes();
-            HttpResponse<String> response = ApiClient.sendScreenshot(taskId, imageBytes);
-            LOGGER.info("Screenshot uploaded. Status: " + response.statusCode());
-            LOGGER.info("Response body: " + response.body());
-        } catch (IOException | InterruptedException | NoSuchAlgorithmException | InvalidKeyException e) {
-            LOGGER.error("Failed to upload screenshot.", e);
-        } finally {
-            nativeImage.close();
-        }
+        ScreenshotRecorder.takeScreenshot(client.getFramebuffer(), (nativeImage) -> {
+            if (nativeImage == null) {
+                LOGGER.error("Failed to take screenshot: nativeImage is null");
+                return;
+            }
+            try {
+                byte[] imageBytes = nativeImage.asByteArray();
+                HttpResponse<String> response = ApiClient.sendScreenshot(taskId, imageBytes);
+                LOGGER.info("Screenshot uploaded. Status: " + response.statusCode());
+                LOGGER.info("Response body: " + response.body());
+            } catch (IOException | InterruptedException | NoSuchAlgorithmException | InvalidKeyException e) {
+                LOGGER.error("Failed to upload screenshot.", e);
+            } finally {
+                nativeImage.close();
+            }
+        });
     }
 }

@@ -37,9 +37,9 @@ public class DataCollector {
     public static JsonArray getResourcePackList() {
         JsonArray resourcePackList = new JsonArray();
         ResourcePackManager manager = MinecraftClient.getInstance().getResourcePackManager();
-        manager.scanAndFindPacks(); // Ensure packs are discovered
-        for (ResourcePackProfile profile : manager.getAvailableProfiles()) {
-            resourcePackList.add(profile.getName());
+        manager.scan(); // Ensure packs are discovered
+        for (ResourcePackProfile profile : manager.getProfiles()) {
+            resourcePackList.add(profile.getDisplayName().getString());
         }
         return resourcePackList;
     }
@@ -48,7 +48,7 @@ public class DataCollector {
         JsonArray enabledResourcePackList = new JsonArray();
         ResourcePackManager manager = MinecraftClient.getInstance().getResourcePackManager();
         for (ResourcePackProfile profile : manager.getEnabledProfiles()) {
-            enabledResourcePackList.add(profile.getName());
+            enabledResourcePackList.add(profile.getDisplayName().getString());
         }
         return enabledResourcePackList;
     }
