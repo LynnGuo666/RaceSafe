@@ -1,0 +1,42 @@
+name: Build RaceSafe Mod
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      racesafe_server_url:
+        description: 'RaceSafe Server URL'
+        required: false
+        default: 'http://localhost:8000'
+      racesafe_secret:
+        description: 'RaceSafe Secret'
+        required: false
+        default: 'test123_lynn'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        env:
+          RACESAFE_SERVER_URL: ${{ github.event.inputs.racesafe_server_url }}
+          RACESAFE_SECRET: ${{ github.event.inputs.racesafe_secret }}
+        run: ./gradlew build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RaceSafe-Mod
+          path: build/libs/*.jar
