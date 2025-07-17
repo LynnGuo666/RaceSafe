@@ -29,7 +29,6 @@ import java.util.Base64;
 
 public class ApiClient {
     public static final Logger LOGGER = LoggerFactory.getLogger(top.lynn6.RaceSafe.MOD_ID + "/Api");
-    private static final String BASE_URL = "https://localhost:8000"; // TODO: Make this configurable
     private static final HttpClient client = HttpClient.newHttpClient();
    
     public static HttpResponse<String> sendPostRequest(String path, String jsonBody) throws IOException, InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
@@ -38,7 +37,7 @@ public class ApiClient {
     	LOGGER.debug("[{}] Sending POST request to {}. Timestamp: {}, Body MD5: {}", top.lynn6.RaceSafe.MOD_ID, path, timestamp, getMD5Hash(jsonBody));
    
     	HttpRequest request = HttpRequest.newBuilder()
-    			.uri(URI.create(BASE_URL + path))
+    			.uri(URI.create(ConfigManager.serverUrl + path))
     			.header("Content-Type", "application/json")
     			.header("x-mod-timestamp", timestamp)
     			.header("Authorization", "MOD-HMAC-SHA256 " + ConfigManager.accessKey + ":" + signature)
@@ -55,7 +54,7 @@ public class ApiClient {
     	LOGGER.debug("[{}] Sending GET request to {}. Timestamp: {}", top.lynn6.RaceSafe.MOD_ID, path, timestamp);
    
     	HttpRequest request = HttpRequest.newBuilder()
-    			.uri(URI.create(path.startsWith("http") ? path : BASE_URL + path))
+    			.uri(URI.create(path.startsWith("http") ? path : ConfigManager.serverUrl + path))
     			.header("x-mod-timestamp", timestamp)
     			.header("Authorization", "MOD-HMAC-SHA256 " + ConfigManager.accessKey + ":" + signature)
     			.GET()

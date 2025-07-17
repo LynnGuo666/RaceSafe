@@ -49,11 +49,11 @@ public class DataCollector {
         ResourcePackManager manager = MinecraftClient.getInstance().getResourcePackManager();
 
         JsonArray availablePacks = new JsonArray();
-        manager.getProfiles().forEach(profile -> availablePacks.add(profile.getName()));
+        manager.getProfiles().forEach(profile -> availablePacks.add(profile.getId()));
         resourcePacksInfo.add("available", availablePacks);
 
         JsonArray enabledPacks = new JsonArray();
-        manager.getEnabledProfiles().forEach(profile -> enabledPacks.add(profile.getName()));
+        manager.getEnabledProfiles().forEach(profile -> enabledPacks.add(profile.getId()));
         resourcePacksInfo.add("enabled", enabledPacks);
 
         return resourcePacksInfo;

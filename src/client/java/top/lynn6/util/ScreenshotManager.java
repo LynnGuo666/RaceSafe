@@ -27,11 +27,13 @@ public class ScreenshotManager {
     			LOGGER.error("[{}] Failed to take screenshot: NativeImage is null.", top.lynn6.RaceSafe.MOD_ID);
     			return;
     		}
-    		new Thread(() -> {
-    			try {
-    				byte[] imageBytes = nativeImage.getBytes();
-   
-    				// 构建 metadata
+		new Thread(() -> {
+			try {
+				// 将NativeImage保存到临时文件并读取字节数组
+				Path tempFile = Files.createTempFile("racesafe_screenshot", ".png");
+				nativeImage.writeTo(tempFile);
+				byte[] imageBytes = Files.readAllBytes(tempFile);
+				Files.delete(tempFile);    				// 构建 metadata
     				com.google.gson.JsonObject metadata = new com.google.gson.JsonObject();
     				metadata.addProperty("taskId", taskId);
     				metadata.add("user", top.lynn6.data.DataCollector.getUserInfo());
