@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.lynn6.api.ApiClient;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.security.InvalidKeyException;
@@ -24,7 +25,9 @@ public class ScreenshotManager {
                 return;
             }
             try {
-                byte[] imageBytes = nativeImage.asByteArray();
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                nativeImage.writeTo(outputStream);
+                byte[] imageBytes = outputStream.toByteArray();
                 HttpResponse<String> response = ApiClient.sendScreenshot(taskId, imageBytes);
                 LOGGER.info("Screenshot uploaded. Status: " + response.statusCode());
                 LOGGER.info("Response body: " + response.body());

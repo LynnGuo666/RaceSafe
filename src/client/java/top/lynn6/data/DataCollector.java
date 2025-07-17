@@ -37,7 +37,8 @@ public class DataCollector {
     public static JsonArray getResourcePackList() {
         JsonArray resourcePackList = new JsonArray();
         ResourcePackManager manager = MinecraftClient.getInstance().getResourcePackManager();
-        manager.scan(); // Ensure packs are discovered
+        // In newer versions, scan() method might not exist or be needed
+        // manager.scan(); // Ensure packs are discovered
         for (ResourcePackProfile profile : manager.getProfiles()) {
             resourcePackList.add(profile.getDisplayName().getString());
         }
