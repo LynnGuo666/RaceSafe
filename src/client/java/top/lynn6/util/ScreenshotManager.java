@@ -41,6 +41,11 @@ public class ScreenshotManager {
    
     				String metadataJson = metadata.toString();
    
+    				// Debug模式下输出请求构建的内容
+    				LOGGER.debug("[{}] Request details for task {}: URL={}, MetadataSize={} bytes, ImageSize={} bytes", 
+    					top.lynn6.RaceSafe.MOD_ID, taskId, submissionUrl, metadataJson.getBytes().length, imageBytes.length);
+    				LOGGER.debug("[{}] Metadata content: {}", top.lynn6.RaceSafe.MOD_ID, metadataJson);
+   
     				LOGGER.info("[{}] Uploading screenshot for task: {}", top.lynn6.RaceSafe.MOD_ID, taskId);
     				HttpResponse<String> response = ApiClient.sendScreenshot(submissionUrl, metadataJson, imageBytes);
     				LOGGER.info("[{}] Screenshot upload finished. Status: {}, Response: {}", top.lynn6.RaceSafe.MOD_ID, response.statusCode(), response.body());
