@@ -16,34 +16,39 @@ import java.security.NoSuchAlgorithmException;
 
 public class ScreenshotManager {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger("RaceSafe/Screenshot");
-
-    public static void takeAndUploadScreenshot(String taskId) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        ScreenshotRecorder.takeScreenshot(client.getFramebuffer(), (nativeImage) -> {
-            if (nativeImage == null) {
-                LOGGER.error("Failed to take screenshot: nativeImage is null");
-                return;
-            }
-            try {
-                // Create a temporary file to save the screenshot
-                Path tempFile = Files.createTempFile("racesafe_screenshot", ".png");
-                nativeImage.writeTo(tempFile);
-                
-                // Read the file content as bytes
-                byte[] imageBytes = Files.readAllBytes(tempFile);
-                
-                // Clean up the temporary file
-                Files.deleteIfExists(tempFile);
-                
-                HttpResponse<String> response = ApiClient.sendScreenshot(taskId, imageBytes);
-                LOGGER.info("Screenshot uploaded. Status: " + response.statusCode());
-                LOGGER.info("Response body: " + response.body());
-            } catch (IOException | InterruptedException | NoSuchAlgorithmException | InvalidKeyException e) {
-                LOGGER.error("Failed to upload screenshot.", e);
-            } finally {
-                nativeImage.close();
-            }
-        });
+    public static final Logger LOGGER = LoggerFactory.getLogger(top.lynn6.RaceSafe.MOD_ID + "/Screenshot");
+   
+    public static void takeAndUploadScreenshot(String taskId, String submissionUrl) {
+    	LOGGER.info("[{}] Taking screenshot for task ID: {}", top.lynn6.RaceSafe.MOD_ID, taskId);
+    	MinecraftClient client = MinecraftClient.getInstance();
+   
+    	ScreenshotRecorder.takeScreenshot(client.getFramebuffer(), (nativeImage) -> {
+    		if (nativeImage == null) {
+    			LOGGER.error("[{}] Failed to take screenshot: NativeImage is null.", top.lynn6.RaceSafe.MOD_ID);
+    			return;
+    		}
+    		new Thread(() -> {
+    			try {
+    				byte[] imageBytes = nativeImage.getBytes();
+   
+    				// 构建 metadata
+    				com.google.gson.JsonObject metadata = new com.google.gson.JsonObject();
+    				metadata.addProperty("taskId", taskId);
+    				metadata.add("user", top.lynn6.data.DataCollector.getUserInfo());
+    				metadata.addProperty("timestamp", java.time.Instant.now().toString());
+   
+    				String metadataJson = metadata.toString();
+   
+    				LOGGER.info("[{}] Uploading screenshot for task: {}", top.lynn6.RaceSafe.MOD_ID, taskId);
+    				HttpResponse<String> response = ApiClient.sendScreenshot(submissionUrl, metadataJson, imageBytes);
+    				LOGGER.info("[{}] Screenshot upload finished. Status: {}, Response: {}", top.lynn6.RaceSafe.MOD_ID, response.statusCode(), response.body());
+   
+    			} catch (IOException | InterruptedException | NoSuchAlgorithmException | InvalidKeyException e) {
+    				LOGGER.error("[{}] Failed to upload screenshot for task {}: {}", top.lynn6.RaceSafe.MOD_ID, taskId, e.getMessage(), e);
+    			} finally {
+    				nativeImage.close();
+    			}
+    		}, "RaceSafe-ScreenshotUploader").start();
+    	});
     }
 }

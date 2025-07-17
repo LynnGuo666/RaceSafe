@@ -8,59 +8,65 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.resource.ResourcePackManager;
 import net.minecraft.resource.ResourcePackProfile;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
 public class DataCollector {
 
-    public static JsonObject getPlayerInfo() {
-        JsonObject playerInfo = new JsonObject();
+    public static JsonObject getUserInfo() {
+        JsonObject userInfo = new JsonObject();
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player != null) {
-            playerInfo.addProperty("username", client.player.getName().getString());
-            playerInfo.addProperty("uuid", client.player.getUuid().toString());
+            userInfo.addProperty("username", client.player.getName().getString());
+            userInfo.addProperty("uuid", client.player.getUuid().toString());
         }
-        return playerInfo;
+        return userInfo;
+    }
+
+    public static JsonObject getGameInfo() {
+        JsonObject gameInfo = new JsonObject();
+        gameInfo.addProperty("minecraftVersion", MinecraftClient.getInstance().getGameVersion());
+        FabricLoader.getInstance().getModContainer("fabricloader").ifPresent(modContainer ->
+                gameInfo.addProperty("fabricLoaderVersion", modContainer.getMetadata().getVersion().getFriendlyString()));
+        return gameInfo;
     }
 
     public static JsonArray getModList() {
         JsonArray modList = new JsonArray();
         for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
             JsonObject modInfo = new JsonObject();
-            modInfo.addProperty("id", mod.getMetadata().getId());
+            modInfo.addProperty("modId", mod.getMetadata().getId());
+            modInfo.addProperty("name", mod.getMetadata().getName());
             modInfo.addProperty("version", mod.getMetadata().getVersion().getFriendlyString());
             modList.add(modInfo);
         }
         return modList;
     }
 
-    public static JsonArray getResourcePackList() {
-        JsonArray resourcePackList = new JsonArray();
+    public static JsonObject getResourcePacksInfo() {
+        JsonObject resourcePacksInfo = new JsonObject();
         ResourcePackManager manager = MinecraftClient.getInstance().getResourcePackManager();
-        // In newer versions, scan() method might not exist or be needed
-        // manager.scan(); // Ensure packs are discovered
-        for (ResourcePackProfile profile : manager.getProfiles()) {
-            resourcePackList.add(profile.getDisplayName().getString());
-        }
-        return resourcePackList;
-    }
 
-    public static JsonArray getEnabledResourcePackList() {
-        JsonArray enabledResourcePackList = new JsonArray();
-        ResourcePackManager manager = MinecraftClient.getInstance().getResourcePackManager();
-        for (ResourcePackProfile profile : manager.getEnabledProfiles()) {
-            enabledResourcePackList.add(profile.getDisplayName().getString());
-        }
-        return enabledResourcePackList;
+        JsonArray availablePacks = new JsonArray();
+        manager.getProfiles().forEach(profile -> availablePacks.add(profile.getName()));
+        resourcePacksInfo.add("available", availablePacks);
+
+        JsonArray enabledPacks = new JsonArray();
+        manager.getEnabledProfiles().forEach(profile -> enabledPacks.add(profile.getName()));
+        resourcePacksInfo.add("enabled", enabledPacks);
+
+        return resourcePacksInfo;
     }
 
     public static JsonObject collectInitialReport() {
         JsonObject report = new JsonObject();
-        report.addProperty("schemaVersion", "1.2");
-        report.add("player", getPlayerInfo());
+        report.addProperty("schemaVersion", "1.0");
+        report.addProperty("timestamp", Instant.now().toString());
+        report.add("user", getUserInfo());
+        report.add("game", getGameInfo());
         report.add("mods", getModList());
-        report.add("availableResourcePacks", getResourcePackList());
-        report.add("enabledResourcePacks", getEnabledResourcePackList());
+        report.add("resourcePacks", getResourcePacksInfo());
         return report;
     }
 }
