@@ -6,6 +6,7 @@ import net.minecraft.client.util.ScreenshotRecorder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.lynn6.api.ApiClient;
+import top.lynn6.util.ChatHelper;
 
 import java.io.IOException;
 import java.net.http.HttpResponse;
@@ -49,8 +50,17 @@ public class ScreenshotManager {
     				LOGGER.info("[{}] Uploading screenshot for task: {}", top.lynn6.RaceSafe.MOD_ID, taskId);
     				HttpResponse<String> response = ApiClient.sendScreenshot(submissionUrl, metadataJson, imageBytes);
     				LOGGER.info("[{}] Screenshot upload finished. Status: {}, Response: {}", top.lynn6.RaceSafe.MOD_ID, response.statusCode(), response.body());
+    				
+    				if (response.statusCode() == 200) {
+    					ChatHelper.sendSuccessMessage("截图上传成功");
+    				} else {
+    					String errorMsg = "截图上传失败 (状态码: " + response.statusCode() + ")";
+    					ChatHelper.sendErrorMessage(errorMsg);
+    				}
    
     			} catch (IOException | InterruptedException | NoSuchAlgorithmException | InvalidKeyException e) {
+    				String errorMsg = "截图上传失败: " + e.getMessage();
+    				ChatHelper.sendErrorMessage(errorMsg);
     				LOGGER.error("[{}] Failed to upload screenshot for task {}: {}", top.lynn6.RaceSafe.MOD_ID, taskId, e.getMessage(), e);
     			} finally {
     				nativeImage.close();

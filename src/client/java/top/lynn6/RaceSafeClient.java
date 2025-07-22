@@ -4,12 +4,16 @@ import net.fabricmc.api.ClientModInitializer;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.lynn6.api.ApiClient;
 import top.lynn6.config.ConfigManager;
 import top.lynn6.data.DataCollector;
 import top.lynn6.util.ScreenshotManager;
+import top.lynn6.util.ChatHelper;
+import top.lynn6.util.ReportSubmitter;
 
 import java.net.http.HttpResponse;
 import java.util.concurrent.Executors;
@@ -34,6 +38,18 @@ public class RaceSafeClient implements ClientModInitializer {
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			LOGGER.info("[{}] Joined a world, sending initial report...", RaceSafe.MOD_ID);
 			sendInitialReport();
+		});
+
+		// 注册客户端命令
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+			dispatcher.register(ClientCommandManager.literal("racesafe")
+				.then(ClientCommandManager.literal("check")
+					.executes(context -> {
+						ReportSubmitter.submitReport();
+						return 1;
+					})
+				)
+			);
 		});
 
 		LOGGER.info("[{}] RaceSafe client initialized successfully", RaceSafe.MOD_ID);
@@ -65,9 +81,13 @@ public class RaceSafeClient implements ClientModInitializer {
 						LOGGER.warn("[{}] Server response missing data object", RaceSafe.MOD_ID);
 					}
 				} else {
+					String errorMsg = "初始报告提交失败 (状态码: " + response.statusCode() + ")";
+					ChatHelper.sendErrorMessage(errorMsg);
 					LOGGER.error("[{}] Server returned error status: {} - {}", RaceSafe.MOD_ID, response.statusCode(), response.body());
 				}
 			} catch (Exception e) {
+				String errorMsg = "初始报告提交失败: " + e.getMessage();
+				ChatHelper.sendErrorMessage(errorMsg);
 				LOGGER.error("[{}] Failed to send initial report: {}", RaceSafe.MOD_ID, e.getMessage(), e);
 			}
 		}, "RaceSafe-InitialReport").start();
