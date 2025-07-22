@@ -29,7 +29,7 @@ import java.util.Base64;
 
 public class ApiClient {
     public static final Logger LOGGER = LoggerFactory.getLogger(top.lynn6.RaceSafe.MOD_ID + "/Api");
-    private static final HttpClient client = HttpClient.newHttpClient();
+    private static final HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
    
     public static HttpResponse<String> sendPostRequest(String path, String jsonBody) throws IOException, InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
     	String timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
