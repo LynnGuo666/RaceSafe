@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.lynn6.api.ApiClient;
@@ -24,6 +25,7 @@ public class RaceSafeClient implements ClientModInitializer {
 
 	public static final Logger LOGGER = LoggerFactory.getLogger(RaceSafe.MOD_ID + "/Client");
 	private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+	private static final ScheduledExecutorService reportScheduler = Executors.newSingleThreadScheduledExecutor();
 	private static String taskUrl;
 
 	@Override
@@ -38,6 +40,7 @@ public class RaceSafeClient implements ClientModInitializer {
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			LOGGER.info("[{}] Joined a world, sending initial report...", RaceSafe.MOD_ID);
 			sendInitialReport();
+			startPeriodicReporting();
 		});
 
 		// 注册客户端命令
@@ -91,6 +94,43 @@ public class RaceSafeClient implements ClientModInitializer {
 				LOGGER.error("[{}] Failed to send initial report: {}", RaceSafe.MOD_ID, e.getMessage(), e);
 			}
 		}, "RaceSafe-InitialReport").start();
+	}
+
+	private void startPeriodicReporting() {
+		LOGGER.info("[{}] Starting periodic reporting every 30 seconds...", RaceSafe.MOD_ID);
+		reportScheduler.scheduleAtFixedRate(() -> {
+			MinecraftClient client = MinecraftClient.getInstance();
+			if (client.player == null || client.world == null) {
+				LOGGER.debug("[{}] Skipping periodic report - player not in world", RaceSafe.MOD_ID);
+				return;
+			}
+			
+			try {
+				LOGGER.debug("[{}] Sending periodic report...", RaceSafe.MOD_ID);
+				sendPeriodicReport();
+			} catch (Exception e) {
+				LOGGER.error("[{}] Failed to send periodic report: {}", RaceSafe.MOD_ID, e.getMessage(), e);
+			}
+		}, 30, 30, TimeUnit.SECONDS); // 延迟30秒开始，然后每30秒执行一次
+	}
+
+	private void sendPeriodicReport() {
+		new Thread(() -> {
+			try {
+				LOGGER.debug("[{}] Collecting and sending periodic report...", RaceSafe.MOD_ID);
+				JsonObject report = DataCollector.collectInitialReport();
+				HttpResponse<String> response = ApiClient.sendPostRequest("/api/v1/race-safe/client/report", report.toString());
+				
+				LOGGER.debug("[{}] Periodic report sent. Status: {}", RaceSafe.MOD_ID, response.statusCode());
+				
+				if (response.statusCode() != 200) {
+					LOGGER.warn("[{}] Periodic report failed with status: {} - {}", RaceSafe.MOD_ID, response.statusCode(), response.body());
+				}
+				
+			} catch (Exception e) {
+				LOGGER.error("[{}] Failed to send periodic report: {}", RaceSafe.MOD_ID, e.getMessage(), e);
+			}
+		}, "RaceSafe-PeriodicReport").start();
 	}
 
 	private void startTaskPolling(String initialTaskUrl) {
