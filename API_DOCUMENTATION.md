@@ -120,3 +120,37 @@ x-mod-timestamp的值
 ---
 
 **注意**: 这份文档是基于客户端代码的逆向分析。服务器端的具体实现可能会有细微差别或更多未在客户端代码中体现的功能。
+
+---
+
+### 3. 报告与任务流程说明（RaceSafe 特定）
+
+#### 3.1 报告（Report）
+
+- **端点**: `POST /api/v1/race-safe/client/report`
+- **内容**: 由客户端通过 `DataCollector.collectInitialReport()` 生成的 JSON，包含以下字段：
+  - `schemaVersion`、`timestamp`
+  - `user`（用户名、UUID）
+  - `game`（Minecraft 版本、Fabric Loader 版本）
+  - `mods`（已加载模组列表）
+  - `resourcePacks`（可用/启用资源包列表）
+- **发送时机**:
+  - 加入任意世界后，立即发送一次“初始报告”。
+  - 进入世界后，客户端会每隔 **30 秒** 自动发送一次“周期报告”（仅当仍在世界中时）。
+  - 手动执行客户端命令 `racesafe check` 会立即提交一份报告。
+
+> 说明：“报告”发送是定时行为（每30秒一次），与任务轮询无关。
+
+#### 3.2 任务轮询与截图上传（独立链路）
+
+- **任务轮询**: 客户端在收到服务器返回的 `taskUrl` 后，会每 **30 秒** 对该 `taskUrl` 发起 `GET` 请求，以获取任务。
+- **任务类型**:
+  - `REQUEST_SCREENSHOT`: 触发一次截图采集与上传。
+  - `NO_OP`: 无操作。
+- **截图上传**:
+  - 由服务器返回的完整 `submissionUrl` 接收，客户端以 `multipart/form-data` 方式提交：
+    - 字段 `metadata`（JSON，包含 `taskId`、`user`、`timestamp`）
+    - 字段 `screenshot`（PNG 二进制）
+  - 该上传请求使用与其他请求相同的签名机制（multipart 的 MD5 参与为空字符串）。
+
+> 重要区分：任务轮询（每30秒）与截图上传仅在收到 `REQUEST_SCREENSHOT` 时发生，且不属于“报告”上报链路。
